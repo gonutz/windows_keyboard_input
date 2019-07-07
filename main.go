@@ -36,21 +36,21 @@ func main() {
 				fmt.Println(w32.GetMessageTime(), "WM_INPUT", w, l)
 				return 0
 			case w32.WM_KEYDOWN:
-				if w == 27 {
-					escCount++
-					if escCount >= 2 {
-						win.CloseWindow(window)
-					}
-				}
-				//fmt.Println(w32.GetMessageTime(), "WM_KEYDOWN", w, l)
-
 				if l&(1<<30) == 0 { // no key repeat
+					//fmt.Println(w32.GetMessageTime(), "WM_KEYDOWN", w, l)
+					if w == 27 {
+						escCount++
+						if escCount >= 5 {
+							win.CloseWindow(window)
+						}
+					}
+
 					t := w32.GetMessageTime()
 					var next w32.MSG
 					var text string
 					if w32.PeekMessage(&next, 0, 0, 0, w32.PM_NOREMOVE) &&
 						next.Time == uint32(t) &&
-						next.Message == w32.WM_CHAR {
+						(next.Message == w32.WM_CHAR) || (next.Message == w32.WM_DEADCHAR) {
 						w32.PeekMessage(&next, 0, 0, 0, w32.PM_REMOVE)
 						text = string(utf16.Decode([]uint16{uint16(next.WParam)}))
 					}
@@ -74,16 +74,18 @@ func main() {
 				return 0
 			case w32.WM_CHAR:
 				if l&(1<<30) == 0 { // no key repeat
-					r := utf16.Decode([]uint16{uint16(w)})[0]
-					fmt.Println(w32.GetMessageTime(), "WM_CHAR_"+string(r), w, l)
-					send(keyboardEvent{
-						text: string(r),
-						down: true,
-					})
+					//r := utf16.Decode([]uint16{uint16(w)})[0]
+					//fmt.Println(w32.GetMessageTime(), "WM_CHAR_"+string(r), w, l)
+					//send(keyboardEvent{
+					//	text: string(r),
+					//	down: true,
+					//})
 				}
 				return 0
 			case w32.WM_DEADCHAR:
-				fmt.Println(w32.GetMessageTime(), "WM_DEADCHAR", w, l)
+				if l&(1<<30) == 0 { // no key repeat
+					fmt.Println(w32.GetMessageTime(), "WM_DEADCHAR", string(rune(w)), w, l)
+				}
 				return 0
 			case w32.WM_SYSKEYDOWN:
 				//fmt.Println(w32.GetMessageTime(), "WM_SYSKEYDOWN", w, l)
