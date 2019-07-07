@@ -69,9 +69,6 @@ func main() {
 					})
 				}
 				return 0
-			case w32.WM_UNICHAR:
-				fmt.Println(w32.GetMessageTime(), "WM_UNICHAR", w, l)
-				return 0
 			case w32.WM_DEADCHAR:
 				fmt.Println(w32.GetMessageTime(), "WM_DEADCHAR", w, l)
 				return 0
@@ -125,7 +122,7 @@ func main() {
 		}
 	}()
 
-	win.RunMainLoop(window)
+	win.RunMainLoop()
 	close(events)
 }
 
