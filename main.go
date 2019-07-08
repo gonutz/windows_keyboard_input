@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	//"unicode"
 	"unicode/utf16"
 
 	"github.com/gonutz/w32"
@@ -15,7 +16,17 @@ func main() {
 	events := make(chan keyboardEvent)
 
 	send := func(e keyboardEvent) {
+		//if e.down && e.text != "" {
+		//	for _, r := range e.text {
+		//		if unicode.IsPrint(r) {
+		//			fmt.Print(string(r))
+		//		}
+		//	}
+		//}
 		fmt.Printf("    %v\n", e)
+		if !e.down {
+			fmt.Println()
+		}
 		//events <- e
 	}
 	_ = send
@@ -27,9 +38,10 @@ func main() {
 	window, err := win.NewWindow(
 		opt,
 		func(window w32.HWND, msg uint32, w, l uintptr) uintptr {
+			extended := l&(1<<24) != 0
 			if w32.WM_KEYFIRST <= msg && msg < w32.WM_KEYLAST {
 				if l&(1<<24) != 0 {
-					fmt.Println("extended")
+					//fmt.Println("extended")
 				}
 			}
 
@@ -61,21 +73,93 @@ func main() {
 						text = string(utf16.Decode([]uint16{uint16(next.WParam)}))
 					}
 
+					key := Key(w)
+					if key == w32.VK_SHIFT {
+						if extended || l&0xFF0000 == 0x360000 {
+							key = w32.VK_RSHIFT
+						} else {
+							key = w32.VK_LSHIFT
+						}
+					}
+					if key == w32.VK_MENU {
+						if extended {
+							key = w32.VK_RMENU
+						} else {
+							key = w32.VK_LMENU
+						}
+					}
+					if key == w32.VK_CONTROL {
+						if extended {
+							key = w32.VK_RCONTROL
+						} else {
+							key = w32.VK_LCONTROL
+						}
+					}
+					ctrlDown := w32.GetKeyState(w32.VK_CONTROL)&0x8000 != 0
+					if key == w32.VK_CANCEL && ctrlDown {
+						if extended {
+							key = w32.VK_PAUSE
+						} else {
+							key = w32.VK_SCROLL
+						}
+					}
 					send(keyboardEvent{
-						key:   Key(w),
+						key:   key,
 						text:  text,
 						down:  true,
 						alt:   w32.GetKeyState(w32.VK_MENU)&0x8000 != 0,
-						ctrl:  w32.GetKeyState(w32.VK_CONTROL)&0x8000 != 0,
+						ctrl:  ctrlDown,
 						shift: w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0,
 					})
 				}
 				return 0
 			case w32.WM_KEYUP:
 				//fmt.Println(w32.GetMessageTime(), "WM_KEYUP", w, l)
+				key := Key(w)
+				if key == w32.VK_SHIFT {
+					if extended || l&0xFF0000 == 0x360000 {
+						key = w32.VK_RSHIFT
+					} else {
+						key = w32.VK_LSHIFT
+					}
+				}
+				if key == w32.VK_MENU {
+					if extended {
+						key = w32.VK_RMENU
+					} else {
+						key = w32.VK_LMENU
+					}
+				}
+				if key == w32.VK_CONTROL {
+					if extended {
+						key = w32.VK_RCONTROL
+					} else {
+						key = w32.VK_LCONTROL
+					}
+				}
+				ctrlDown := w32.GetKeyState(w32.VK_CONTROL)&0x8000 != 0
+				if key == w32.VK_CANCEL && ctrlDown {
+					if extended {
+						key = w32.VK_PAUSE
+					} else {
+						key = w32.VK_SCROLL
+					}
+				}
+				if key == w32.VK_SNAPSHOT {
+					// The print key does not send a key down message, only a
+					// key up message. We just send the down ourselves right
+					// before the up.
+					send(keyboardEvent{
+						down:  true,
+						key:   key,
+						alt:   w32.GetKeyState(w32.VK_MENU)&0x8000 != 0,
+						ctrl:  ctrlDown,
+						shift: w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0,
+					})
+				}
 				send(keyboardEvent{
 					down:  false,
-					key:   Key(w),
+					key:   key,
 					alt:   w32.GetKeyState(w32.VK_MENU)&0x8000 != 0,
 					ctrl:  w32.GetKeyState(w32.VK_CONTROL)&0x8000 != 0,
 					shift: w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0,
