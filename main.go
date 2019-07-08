@@ -95,21 +95,25 @@ func main() {
 							key = w32.VK_LCONTROL
 						}
 					}
+					altDown := w32.GetKeyState(w32.VK_MENU)&0x8000 != 0
 					ctrlDown := w32.GetKeyState(w32.VK_CONTROL)&0x8000 != 0
+					shiftDown := w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0
 					if key == w32.VK_CANCEL && ctrlDown {
 						if extended {
 							key = w32.VK_PAUSE
 						} else {
 							key = w32.VK_SCROLL
 						}
+					} else if key == w32.VK_PAUSE && ctrlDown && !altDown && !shiftDown {
+						key = w32.VK_NUMLOCK
 					}
 					send(keyboardEvent{
 						key:   key,
 						text:  text,
 						down:  true,
-						alt:   w32.GetKeyState(w32.VK_MENU)&0x8000 != 0,
+						alt:   altDown,
 						ctrl:  ctrlDown,
-						shift: w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0,
+						shift: shiftDown,
 					})
 				}
 				return 0
@@ -137,13 +141,17 @@ func main() {
 						key = w32.VK_LCONTROL
 					}
 				}
+				altDown := w32.GetKeyState(w32.VK_MENU)&0x8000 != 0
 				ctrlDown := w32.GetKeyState(w32.VK_CONTROL)&0x8000 != 0
+				shiftDown := w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0
 				if key == w32.VK_CANCEL && ctrlDown {
 					if extended {
 						key = w32.VK_PAUSE
 					} else {
 						key = w32.VK_SCROLL
 					}
+				} else if key == w32.VK_PAUSE && ctrlDown && !altDown && !shiftDown {
+					key = w32.VK_NUMLOCK
 				}
 				if key == w32.VK_SNAPSHOT {
 					// The print key does not send a key down message, only a
@@ -152,9 +160,9 @@ func main() {
 					send(keyboardEvent{
 						down:  true,
 						key:   key,
-						alt:   w32.GetKeyState(w32.VK_MENU)&0x8000 != 0,
+						alt:   altDown,
 						ctrl:  ctrlDown,
-						shift: w32.GetKeyState(w32.VK_SHIFT)&0x8000 != 0,
+						shift: shiftDown,
 					})
 				}
 				send(keyboardEvent{
